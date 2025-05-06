@@ -1,0 +1,8 @@
+Flask
+Flask-Login
+SQLAlchemy
+requests
+python-telegram-bot
+python-dotenv
+matplotlib
+Werkzeug

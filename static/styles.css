@@ -1,0 +1,35 @@
+/* Уведомления (toast) */
+.toast-container {
+  position: fixed !important;  /* Убедитесь, что позиционирование фиксированное */
+  bottom: 20px !important;     /* Устанавливаем на 20px от нижнего края экрана */
+  right: 20px !important;      /* Устанавливаем на 20px от правого края экрана */
+  z-index: 1055 !important;    /* Убедитесь, что они выше других элементов */
+  pointer-events: none !important; /* Чтобы они не мешали взаимодействию с другими элементами */
+  max-width: 100% !important;  /* Убираем ограничение по ширине */
+}
+
+.toast {
+  max-width: 350px;            /* Максимальная ширина тоста */
+  pointer-events: auto;        /* Чтобы тосты могли закрываться */
+  animation: fadeInUp 0.3s ease-in-out;  /* Анимация появления */
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Цвета */
+.income {
+  color: #28a745;
+}
+
+.expense {
+  color: #dc3545;
+}

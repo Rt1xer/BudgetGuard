@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <title>BudgetGuard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at 30% 10%, rgba(13,110,253,.25), transparent 60%),
+                 radial-gradient(circle at 80% 80%, rgba(102,16,242,.25), transparent 60%),
+                 var(--bs-body-bg);
+      background-attachment: fixed;
+      transition: background-color .4s;
+      backdrop-filter: saturate(180%) blur(4px);
+    }
+    .navbar-gradient {
+      background: linear-gradient(135deg, #0d6efd 0%, #6610f2 100%);
+    }
+    .navbar-gradient .navbar-brand,
+    .navbar-gradient .nav-link {
+      color: #fff !important;
+    }
+    .card {
+      border: 1px solid rgba(255,255,255,.25);
+      background: rgba(255,255,255,.55);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.05);
+      transition: transform .15s;
+    }
+    [data-bs-theme="dark"] .card {
+      background: rgba(30,30,30,.55);
+      border-color: rgba(255,255,255,.08);
+    }
+    .card:hover { transform: translateY(-2px); }
+    .budget-display {
+      background: rgba(255,255,255,.35);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,.4);
+      border-radius: 32px;
+      padding: .5rem 1.25rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,.06);
+      font-weight: 500;
+      transition: background .3s;
+    }
+    [data-bs-theme="dark"] .budget-display {
+      background: rgba(30,30,30,.35);
+      border-color: rgba(255,255,255,.15);
+    }
+    .btn-gradient {
+      background: linear-gradient(135deg, #0d6efd, #6610f2);
+      border: none;
+      color: #fff;
+    }
+    .btn-gradient:hover { filter: brightness(1.08); }
+    .form-control, .form-select {
+      border-radius: 12px;
+    }
+    .list-group-item {
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid rgba(0,0,0,.05);
+    }
+    [data-bs-theme="dark"] .list-group-item {
+      border-bottom-color: rgba(255,255,255,.08);
+    }
+    .income { color: #28a745; }
+    .expense { color: #dc3545; }
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-gradient shadow-sm">
+  <div class="container">
+    <a class="navbar-brand fw-semibold d-flex align-items-center gap-2" href="/">
+      <img src="{{ url_for('static', filename='favicon.png') }}" alt="icon" width="24" height="24">
+      BudgetGuard
+    </a>
+    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div id="navContent" class="collapse navbar-collapse justify-content-end align-items-center gap-3">
+      <div class="form-check form-switch m-0">
+        <input class="form-check-input" type="checkbox" id="themeToggle">
+        <label class="form-check-label text-white" for="themeToggle"><i class="bi bi-moon-fill"></i></label>
+      </div>
+      <a href="/report" class="btn btn-outline-light d-flex align-items-center gap-1">
+        <i class="bi bi-pie-chart-fill"></i><span>Отчёт</span>
+      </a>
+      <a href="{{ url_for('users.logout') }}" class="btn btn-outline-light d-flex align-items-center gap-1">
+        <i class="bi bi-box-arrow-right"></i><span>Выход</span>
+      </a>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4">
+
+  <!-- Уведомления -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="mb-4">
+        {% for category, msg in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ msg }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Баланс -->
+  <div class="d-flex justify-content-end mb-4">
+    <div class="budget-display">
+      <span>Баланс:</span>
+      <span id="budgetTotal" class="fw-bold">{{ budget }} ₽</span>
+    </div>
+  </div>
+
+  <!-- Форма операций -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="card-title mb-3">Добавить операцию</h5>
+
+      <form id="expenseForm" class="mb-3">
+        <div class="row g-2">
+          <div class="col-md-4"><input type="number" class="form-control" name="amount" placeholder="Сумма расхода" required step="0.01"></div>
+          <div class="col-md-6">
+            <select class="form-select" name="category" required id="expenseCategorySelect">
+              <option value="" disabled selected>Выберите категорию расхода</option>
+            </select>
+          </div>
+          <div class="col-md-2 d-grid"><button type="submit" class="btn btn-danger">Расход</button></div>
+        </div>
+      </form>
+
+      <form id="incomeForm">
+        <div class="row g-2">
+          <div class="col-md-4"><input type="number" class="form-control" name="amount" placeholder="Сумма дохода" required step="0.01"></div>
+          <div class="col-md-6">
+            <select class="form-select" name="category" required id="incomeCategorySelect">
+              <option value="" disabled selected>Выберите категорию дохода</option>
+            </select>
+          </div>
+          <div class="col-md-2 d-grid"><button type="submit" class="btn btn-success">Доход</button></div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Добавление категории -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="card-title mb-3">Добавить свою категорию</h5>
+      <form id="addCategoryForm" class="row g-2 align-items-center">
+        <div class="col-md-6">
+          <input type="text" class="form-control" id="newCategoryInput" placeholder="Название категории" required>
+        </div>
+        <div class="col-md-3">
+          <select class="form-select" id="newCategoryKind" required>
+            <option value="" disabled selected>Тип</option>
+            <option value="expense">Расход</option>
+            <option value="income">Доход</option>
+          </select>
+        </div>
+        <div class="col-md-3 d-grid">
+          <button type="submit" class="btn btn-gradient">Добавить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Фильтр -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <h5 class="card-title mb-3">Фильтр</h5>
+      <div class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label">Поиск по категории</label>
+          <input id="searchInput" type="text" class="form-control" placeholder="например: такси">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">С даты</label>
+          <input id="fromDate" type="date" class="form-control">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">По дату</label>
+          <input id="toDate" type="date" class="form-control">
+        </div>
+        <div class="col-md-2 d-grid">
+          <button id="applyFilter" class="btn btn-gradient">Применить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- История -->
+  <div class="card">
+    <div class="card-body">
+      <h5 class="card-title mb-3">История операций</h5>
+      <div id="transactionsList" class="list-group"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="toast" class="toast align-items-center text-white bg-success" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="toastMessage"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Закрыть"></button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const html = document.documentElement, toggle = document.getElementById('themeToggle');
+  const saved = localStorage.getItem('theme') || 'light';
+  html.setAttribute('data-bs-theme', saved);
+  toggle.checked = saved === 'dark';
+  toggle.onchange = () => {
+    const t = toggle.checked ? 'dark' : 'light';
+    html.setAttribute('data-bs-theme', t);
+    localStorage.setItem('theme', t);
+  };
+
+  const toast = new bootstrap.Toast(document.getElementById('toast'), { delay: 3000 });
+  function showToast(msg, ok) {
+    const el = document.getElementById('toast');
+    el.classList.toggle('bg-success', ok);
+    el.classList.toggle('bg-danger', !ok);
+    document.getElementById('toastMessage').textContent = msg;
+    toast.show();
+  }
+
+  async function updateBudget() {
+    const r = await fetch('/budget');
+    const d = await r.json();
+    document.getElementById('budgetTotal').textContent = d.total.toFixed(2) + ' ₽';
+  }
+
+  async function loadCategories() {
+    const [incomeRes, expenseRes] = await Promise.all([
+      fetch('/categories?kind=income'),
+      fetch('/categories?kind=expense')
+    ]);
+    const [incomeCats, expenseCats] = await Promise.all([incomeRes.json(), expenseRes.json()]);
+
+    const incomeSel = document.getElementById('incomeCategorySelect');
+    const expenseSel = document.getElementById('expenseCategorySelect');
+
+    incomeSel.innerHTML = '<option value="" disabled selected>Выберите категорию дохода</option>';
+    expenseSel.innerHTML = '<option value="" disabled selected>Выберите категорию расхода</option>';
+
+    incomeCats.forEach(c => incomeSel.insertAdjacentHTML('beforeend', `<option>${c}</option>`));
+    expenseCats.forEach(c => expenseSel.insertAdjacentHTML('beforeend', `<option>${c}</option>`));
+  }
+
+  async function loadTransactions(f = {}) {
+    const qs = new URLSearchParams(f).toString();
+    const r = await fetch('/transactions' + (qs ? `?${qs}` : ''));
+    const tx = await r.json();
+    const cont = document.getElementById('transactionsList');
+    cont.innerHTML = '';
+    tx.forEach(t => {
+      cont.insertAdjacentHTML('beforeend', `
+        <div class="list-group-item">
+          <div class="d-flex justify-content-between">
+            <div><span class="fw-bold">${t.category}</span><small class="text-muted d-block">${t.date}</small></div>
+            <span class="${t.kind === 'income' ? 'income' : 'expense'}">${t.kind === 'income' ? '+' : '-'}${t.amount.toFixed(2)} ₽</span>
+          </div>
+        </div>`);
+    });
+  }
+
+  document.getElementById('applyFilter').onclick = () => {
+    const f = {
+      q: searchInput.value.trim() || undefined,
+      start: fromDate.value || undefined,
+      end: toDate.value || undefined
+    };
+    Object.keys(f).forEach(k => f[k] === undefined && delete f[k]);
+    loadTransactions(f);
+  };
+
+  expenseForm.onsubmit = async e => {
+    e.preventDefault();
+    const d = {
+      amount: e.target.amount.value,
+      category: e.target.category.value,
+      kind: 'expense'
+    };
+    const r = await fetch('/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(d)
+    });
+    const res = await r.json();
+    if (res.success) {
+      showToast(`Расход: ${d.amount} ₽ (${d.category})`, false);
+      e.target.reset();
+      updateBudget();
+      loadTransactions();
+    } else showToast(res.error, false);
+  };
+
+  incomeForm.onsubmit = async e => {
+    e.preventDefault();
+    const d = {
+      amount: e.target.amount.value,
+      category: e.target.category.value,
+      kind: 'income'
+    };
+    const r = await fetch('/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(d)
+    });
+    const res = await r.json();
+    if (res.success) {
+      showToast(`Доход: +${d.amount} ₽ (${d.category})`, true);
+      e.target.reset();
+      updateBudget();
+      loadTransactions();
+    } else showToast(res.error, false);
+  };
+
+  addCategoryForm.onsubmit = async e => {
+    e.preventDefault();
+    const name = newCategoryInput.value.trim();
+    const kind = newCategoryKind.value;
+    if (!name || !kind) return;
+
+    const res = await fetch('/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, kind })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`Категория "${name}" добавлена`, true);
+      newCategoryInput.value = '';
+      newCategoryKind.value = '';
+      loadCategories();
+    } else {
+      showToast(data.error || 'Ошибка при добавлении категории', false);
+    }
+  };
+
+  loadCategories();
+  loadTransactions();
+  updateBudget();
+</script>
+</body>
+</html>

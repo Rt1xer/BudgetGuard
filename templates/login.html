@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <title>Вход — BudgetGuard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at 30% 10%, rgba(13,110,253,.25), transparent 60%),
+                 radial-gradient(circle at 80% 80%, rgba(102,16,242,.25), transparent 60%),
+                 var(--bs-body-bg);
+      background-attachment: fixed;
+      transition: background-color .4s;
+      backdrop-filter: saturate(180%) blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .card {
+      max-width: 420px;
+      margin: auto;
+      padding: 2rem;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.25);
+      background: rgba(255,255,255,.55);
+      box-shadow: 0 8px 24px rgba(0,0,0,.05);
+      backdrop-filter: blur(12px);
+    }
+    [data-bs-theme="dark"] .card {
+      background: rgba(30,30,30,.55);
+      border-color: rgba(255,255,255,.08);
+    }
+    .btn-gradient {
+      background: linear-gradient(135deg, #0d6efd, #6610f2);
+      border: none;
+      color: #fff;
+    }
+    .btn-gradient:hover {
+      filter: brightness(1.08);
+    }
+    .form-control {
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card text-center">
+    <h4 class="mb-3">Вход в BudgetGuard</h4>
+    <form method="post">
+      <input name="username" type="text" class="form-control mb-3" placeholder="Логин" required>
+      <input name="password" type="password" class="form-control mb-3" placeholder="Пароль" required>
+      <button type="submit" class="btn btn-gradient w-100 mb-2">Войти</button>
+      <p class="mb-0">Нет аккаунта? <a href="{{ url_for('users.register') }}">Регистрация</a></p>
+    </form>
+  </div>
+</body>
+</html>
